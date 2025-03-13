@@ -2,26 +2,25 @@ import { HandPalm, Play } from 'phosphor-react'
 import { useForm } from 'react-hook-form'
 import * as yup from 'yup'
 import {
-  CountDownContainer,
-  FormContainer,
   HomeContainer,
-  MinutesAmountInput,
-  Separator,
   StartCountDownButton,
   StopCountDownButton,
-  TaskInput,
 } from './style'
 import { useEffect, useState } from 'react'
 import { Cycle } from './Home.types'
 import { differenceInSeconds } from 'date-fns'
 import { yupResolver } from '@hookform/resolvers/yup'
+import CountDown from './components/CountDown/CountDown'
+import NewCycleForm from './components/newCycleForm/newCycleForm'
 
 const newCycleFormValidationSchema = yup.object({
   task: yup.string().required('Informe a tarefa').min(1, 'Informe a tarefa'),
   minuteAmount: yup.number().required().min(5).max(60),
 })
 
-type NewCycleFormData = yup.InferType<typeof newCycleFormValidationSchema>
+export type NewCycleFormData = yup.InferType<
+  typeof newCycleFormValidationSchema
+>
 
 export function Home() {
   const [cycles, setCycles] = useState<Cycle[]>([])
@@ -117,36 +116,8 @@ export function Home() {
   return (
     <HomeContainer>
       <form onSubmit={handleSubmit(handlCreateNewCycle)} action="">
-        <FormContainer>
-          <label htmlFor="task">Vou trabalhar em</label>
-          <TaskInput
-            id="task"
-            placeholder="De um nome para o seu projeto."
-            {...register('task')}
-            disabled={!!activeCycle}
-          />
-
-          <label htmlFor="minutesAmount">durante</label>
-          <MinutesAmountInput
-            type="number"
-            id="minutesAmount"
-            placeholder="00"
-            step={5}
-            {...register('minuteAmount', { valueAsNumber: true })}
-            disabled={!!activeCycle}
-          />
-
-          <span>minutos.</span>
-        </FormContainer>
-
-        <CountDownContainer>
-          <span>{minutes[0]}</span>
-          <span>{minutes[1]}</span>
-          <Separator>:</Separator>
-          <span>{seconds[0]}</span>
-          <span>{seconds[1]}</span>
-        </CountDownContainer>
-
+        <NewCycleForm activeCycle={activeCycle} register={register} />
+        <CountDown minutes={minutes} seconds={seconds} />
         {activeCycle ? (
           <StopCountDownButton onClick={handleInterruptCycle} type="button">
             <HandPalm size={24} /> Stop
