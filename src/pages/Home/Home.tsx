@@ -1,7 +1,6 @@
 import { HandPalm, Play } from 'phosphor-react'
 import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import * as zod from 'zod'
+import * as yup from 'yup'
 import {
   CountDownContainer,
   FormContainer,
@@ -15,13 +14,14 @@ import {
 import { useEffect, useState } from 'react'
 import { Cycle } from './Home.types'
 import { differenceInSeconds } from 'date-fns'
+import { yupResolver } from '@hookform/resolvers/yup'
 
-const newCycleFormValidationSchema = zod.object({
-  task: zod.string().min(1, 'Informe a tarefa'),
-  minuteAmount: zod.number().min(5).max(60),
+const newCycleFormValidationSchema = yup.object({
+  task: yup.string().required('Informe a tarefa').min(1, 'Informe a tarefa'),
+  minuteAmount: yup.number().required().min(5).max(60),
 })
 
-type NewCycleFormData = zod.infer<typeof newCycleFormValidationSchema>
+type NewCycleFormData = yup.InferType<typeof newCycleFormValidationSchema>
 
 export function Home() {
   const [cycles, setCycles] = useState<Cycle[]>([])
@@ -29,28 +29,48 @@ export function Home() {
   const [amountSecondsPassed, setAmountSecondsPassed] = useState(0)
 
   const { register, handleSubmit, watch, reset } = useForm<NewCycleFormData>({
-    resolver: zodResolver(newCycleFormValidationSchema),
+    resolver: yupResolver(newCycleFormValidationSchema),
     defaultValues: {
       task: '',
-      minuteAmount: 0,
+      minuteAmount: 5,
     },
   })
 
   const activeCycle = cycles.find((cycle) => cycle.id === activeCycleId)
 
+  const totalSeconds = activeCycle ? activeCycle.minutesAmount * 60 : 0
+
   useEffect(() => {
     let interval: number
     if (activeCycle) {
       interval = setInterval(() => {
-        setAmountSecondsPassed(
-          differenceInSeconds(new Date(), activeCycle.startDate),
+        const secondsDiference = differenceInSeconds(
+          new Date(),
+          activeCycle.startDate,
         )
+        if (secondsDiference >= totalSeconds) {
+          setCycles((state) =>
+            state.map((cycle) => {
+              if (cycle.id === activeCycleId) {
+                return {
+                  ...cycle,
+                  status: 'finished',
+                }
+              } else {
+                return cycle
+              }
+            }),
+          )
+          setAmountSecondsPassed(totalSeconds)
+          clearInterval(interval)
+        }
+        setAmountSecondsPassed(secondsDiference)
       }, 1000)
     }
     return () => {
       clearInterval(interval)
     }
-  }, [activeCycle])
+  }, [activeCycle, totalSeconds, activeCycleId])
 
   function handlCreateNewCycle(date: NewCycleFormData) {
     const newCycle: Cycle = {
@@ -66,10 +86,8 @@ export function Home() {
   }
 
   function handleInterruptCycle() {
-    setActiveCycleId(null)
-
-    setCycles(
-      cycles.map((cycle) => {
+    setCycles((state) =>
+      state.map((cycle) => {
         if (cycle.id === activeCycleId) {
           return {
             ...cycle,
@@ -80,8 +98,8 @@ export function Home() {
         }
       }),
     )
+    setActiveCycleId(null)
   }
-  const totalSeconds = activeCycle ? activeCycle.minutesAmount * 60 : 0
   const currentSeconds = activeCycle ? totalSeconds - amountSecondsPassed : 0
 
   const minutesAmount = Math.floor(currentSeconds / 60)
