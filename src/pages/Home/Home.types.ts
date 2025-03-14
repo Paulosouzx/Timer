@@ -8,3 +8,11 @@ export interface Cycle {
   interrupted?: Date
   status?: StatusCycle
 }
+
+export interface CyclesContextData {
+  activeCycle: Cycle | undefined
+  activeCycleId: string | null
+  markCurrentCycleAsFinished: () => void
+  amountSecondsPassed: number
+  setSecondsPassed: (seconds: number) => void
+}
